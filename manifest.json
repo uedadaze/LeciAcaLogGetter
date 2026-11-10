@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "LeciAcaLogGetter",
+  "version": "1.0.0",
+  "description": "定期ゲームのチャットルームから投稿ログを収集・保存するツール",
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://rarirupj.com/leciar/room*"],
+      "js": ["content.js", "editor.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
