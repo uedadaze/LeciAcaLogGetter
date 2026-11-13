@@ -41,6 +41,19 @@ function nextPaint() {
   });
 }
 
+async function decodeCaptureImage(image) {
+  try {
+    await image.decode();
+    return true;
+  } catch (error) {
+    if (error?.name !== "EncodingError") {
+      throw error;
+    }
+    console.warn("画像をデコードできなかったため、空欄にします:", error);
+    return false;
+  }
+}
+
 async function captureElement(element, dialog) {
   if (!element.isConnected) {
     throw new Error("撮影する画像がページから削除されました。");
@@ -49,10 +62,14 @@ async function captureElement(element, dialog) {
     return null;
   }
   if (element instanceof HTMLImageElement) {
-    await element.decode();
+    if (!await decodeCaptureImage(element)) {
+      return undefined;
+    }
   } else {
     for (const image of element.querySelectorAll("img")) {
-      await image.decode();
+      if (!await decodeCaptureImage(image)) {
+        return undefined;
+      }
     }
   }
   element.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
@@ -101,7 +118,9 @@ async function captureElement(element, dialog) {
   }
   const screenshot = new Image();
   screenshot.src = result.image;
-  await screenshot.decode();
+  if (!await decodeCaptureImage(screenshot)) {
+    return undefined;
+  }
   const scaleX = screenshot.naturalWidth / viewportWidth;
   const scaleY = screenshot.naturalHeight / viewportHeight;
   const left = Math.floor(visibleLeft * scaleX);
@@ -156,9 +175,11 @@ async function captureImages(message, snapshot, sidebar, targets, dialog) {
       const copy = copies[index];
       const data = await captureElement(source, dialog);
       verifyTargets();
-      if (data === null) {
+      if (data == null) {
         const placeholder = document.createElement("span");
-        placeholder.textContent = "【画像を撮影できませんでした】";
+        if (data === null) {
+          placeholder.textContent = "【画像を撮影できませんでした】";
+        }
         if (source.matches("img")) {
           copy.replaceWith(placeholder);
         } else {
